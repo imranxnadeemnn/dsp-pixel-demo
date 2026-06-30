@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acme — Sample Advertiser Page (DSP Pixel Test)</title>
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:680px;margin:32px auto;padding:0 18px;color:#16161d;line-height:1.5}
+  h1{font-size:22px;margin-bottom:4px} .muted{color:#777;font-size:14px}
+  .card{border:1px solid #e4e4ef;border-radius:12px;padding:18px;margin:16px 0}
+  button{background:#3b3bff;color:#fff;border:0;border-radius:8px;padding:11px 16px;font-size:14px;cursor:pointer;margin:4px 8px 4px 0}
+  button.alt{background:#0a8f5b} button.gray{background:#555}
+  code{background:#f2f2fb;padding:2px 6px;border-radius:5px;font-size:12px}
+  #log{background:#0f1020;color:#7fffd4;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;padding:14px;border-radius:8px;min-height:90px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+  <h1>🛍️ Acme Store — Sample Advertiser Page</h1>
+  <p class="muted">A standalone test page wired to your live DSP Web App. Open it from any normal web origin
+  (e.g. a static host, or <code>python3 -m http.server</code>) so cookies and beacons behave like a real site.
+  Add click params to the URL to simulate a DSP click landing, e.g.
+  <code>?click_id=ABC123&campaign_id=1001&pub_id=PUB7&creative_id=CR5</code></p>
+
+  <div class="card">
+    <b>Step 1 — Landing</b> (drops the first-party <code>_dsp_attr</code> cookie automatically on load).<br>
+    <span class="muted">The pixel below loads with <code>data-event="landing"</code>.</span>
+  </div>
+
+  <div class="card">
+    <b>Step 2 — Fire conversions</b> (each reads the cookie and beacons to the Web App):<br>
+    <button class="alt" onclick="dspTrack('registration')">Registration</button>
+    <button onclick="dspTrack('purchase',{value:'49.99',currency:'USD',orderId:'ORDER-'+Date.now(),txnId:'ORDER-'+Date.now()})">Purchase $49.99</button>
+    <button class="gray" onclick="dspTrack('custom',{eventName:'add_to_cart',value:'19.00',currency:'USD'})">Custom: add_to_cart</button>
+  </div>
+
+  <div class="card">
+    <b>Event log</b>
+    <div id="log">(loading pixel…)</div>
+  </div>
+
+  <!-- ===== DSP TRACKING PIXEL (landing) ===== -->
+  <!-- Live deployment URL: -->
+  <script src="https://script.google.com/macros/s/AKfycbzHN7Qykdj3l_flvpyWMm7qxDBOwZtrz5L2YuOeDDZoRsGPyM7xjHFpwryluvZP7FM-/exec?action=pixel"
+          data-event="landing"></script>
+
+  <!-- Small local logger so you can see activity in the page (optional, not part of the pixel) -->
+  <script>
+    (function(){
+      var log = document.getElementById('log');
+      function line(m){ log.textContent += "\n" + m; }
+      var ck = (document.cookie.match(/_dsp_attr=([^;]*)/)||[])[1];
+      line(ck ? "cookie _dsp_attr present ✓" : "no _dsp_attr cookie yet (add ?click_id=... to the URL)");
+      line(typeof window.dspTrack === 'function' ? "pixel loaded ✓ — dspTrack() ready" : "pixel NOT loaded ✗ (check the script URL)");
+      // wrap dspTrack to echo each call into the log
+      var orig = window.dspTrack;
+      if (typeof orig === 'function') {
+        window.dspTrack = function(evt, opts){ line("fired ["+evt+"] "+JSON.stringify(opts||{})); return orig(evt, opts); };
+      }
+    })();
+  </script>
+</body>
+</html>

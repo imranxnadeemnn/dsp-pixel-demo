@@ -1,0 +1,69 @@
+<!--
+  ============================================================================
+  DSP TRACKING — advertiser copy/paste snippets
+  ============================================================================
+  Replace WEBAPP_URL below with your deployed Apps Script Web App URL, e.g.
+    https://script.google.com/macros/s/AKfycbXXXXXXXXXXXXXXXXXX/exec
+
+  Place each snippet just before </body> on the matching page type.
+  ============================================================================
+-->
+
+<!-- =========================================================================
+  1) LANDING PAGE  (the page the DSP click lands on)
+     The DSP must append the click params to this page's URL, e.g.
+       https://advertiser.com/lp?click_id=ABC123&campaign_id=1001&pub_id=PUB9&creative_id=CR5
+     The pixel reads those params, drops the _dsp_attr cookie, and logs a
+     "landing" view. data-event defaults to "landing", so it's optional here.
+========================================================================== -->
+<script src="WEBAPP_URL?action=pixel" data-event="landing"></script>
+
+
+<!-- =========================================================================
+  2) REGISTRATION / SIGN-UP CONFIRMATION PAGE
+========================================================================== -->
+<script src="WEBAPP_URL?action=pixel" data-event="registration"></script>
+
+
+<!-- =========================================================================
+  3) PURCHASE / ORDER CONFIRMATION PAGE
+     Pass the order value, currency, and a unique order/txn id.
+     txn-id enables server-side de-duplication (a refreshed thank-you page
+     will not double-count).
+========================================================================== -->
+<script src="WEBAPP_URL?action=pixel"
+        data-event="purchase"
+        data-value="49.99"
+        data-currency="USD"
+        data-order-id="ORDER-10231"
+        data-txn-id="ORDER-10231"></script>
+
+
+<!-- =========================================================================
+  4) CUSTOM EVENT  (any other action, e.g. add_to_cart, app_install)
+========================================================================== -->
+<script src="WEBAPP_URL?action=pixel"
+        data-event="custom"
+        data-event-name="add_to_cart"
+        data-value="19.00"
+        data-currency="USD"></script>
+
+
+<!-- =========================================================================
+  5) DYNAMIC VALUES  (when the amount is only known at runtime, e.g. a cart
+     total rendered by your app). Load the pixel WITHOUT auto-firing by using
+     data-event="manual", then call dspTrack() when you have the data.
+========================================================================== -->
+<script>
+  window._dsp = { event: "manual" }; // prevents auto-fire on load
+</script>
+<script src="WEBAPP_URL?action=pixel"></script>
+<script>
+  // call this after the purchase is confirmed:
+  dspTrack("purchase", {
+    value:   String(window.cartTotal || "0.00"),
+    currency:"USD",
+    orderId: window.orderId,
+    txnId:   window.orderId
+  });
+</script>
