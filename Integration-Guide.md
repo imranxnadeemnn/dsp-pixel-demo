@@ -180,7 +180,7 @@ Server-derived: `event_time` (server ts), `can_claim` (always sent as 1).
 
 ## 10. Limitations & notes
 
-- **Same-domain attribution** — landing and conversion pages must share a domain (or sub-domains via `cookie_domain`).
+- **Cross-domain** — supported via link decoration: the pixel captures `click_id` (and the other tracking params) from the URL on *any* page, not just the landing page, and (re)establishes the cookie on that domain. For a multi-domain funnel, the advertiser must carry the params on cross-domain links (`…/checkout?click_id=…&campaign_id=…&device_id=…`). For sub-domains, set `cookie_domain=.brand.com` instead. True cross-device / independent-domain matching still needs a server-side identity store (v2 roadmap).
 - **Apps Script quotas** — ~20,000 `UrlFetchApp` calls/day; fine for pilots/low volume. For scale, move the collect/forward layer to a real endpoint — the pixel and parameter scheme stay identical (see PRD roadmap).
 - **Cookie limits** — Safari ITP caps script-set cookie lifetime (~7 days); treat `cookie_days` as best-effort.
 - **Beacons** — `navigator.sendBeacon` with `Image` GET fallback; cross-origin works without CORS config.

@@ -90,17 +90,22 @@
   /* ---- main ------------------------------------------------------------- */
   function fire() {
     var c = cfg();
-    var attr;
-
     if (c.event === "manual") return;   // wait for an explicit dspTrack() call
 
-    if (c.event === "landing") {
-      attr = { ft: Date.now() };
-      for (var i = 0; i < TRACK.length; i++) { var v = qp(TRACK[i]); if (v) attr[TRACK[i]] = v; }
-      if (attr.click_id) { setCookie(COOKIE, JSON.stringify(attr), DAYS); }
-      else { attr = readAttr(); }           // no click_id on URL -> keep existing
-    } else {
-      attr = readAttr();                     // conversion -> read attribution cookie
+    var attr = readAttr();              // existing first-party cookie on THIS domain (may be {})
+
+    // Landing OR cross-domain: if the URL carries a click_id, (re)establish the
+    // cookie on THIS domain. Advertisers decorate cross-domain links with these
+    // params so attribution follows the user onto a different domain.
+    var urlAttr = {}, hasClick = false;
+    for (var i = 0; i < TRACK.length; i++) {
+      var v = qp(TRACK[i]);
+      if (v) { urlAttr[TRACK[i]] = v; if (TRACK[i] === "click_id") hasClick = true; }
+    }
+    if (hasClick) {
+      for (var k in urlAttr) attr[k] = urlAttr[k];   // URL params augment/override the cookie
+      if (!attr.ft) attr.ft = Date.now();
+      setCookie(COOKIE, JSON.stringify(attr), DAYS);
     }
 
     if (!attr.click_id && c.event !== "landing") return;  // nothing to attribute

@@ -20,7 +20,8 @@ Note: right after deploying a new Web App version, `?action=pixel` can briefly r
 - **Google Sheet (database)**
   `https://docs.google.com/spreadsheets/d/1RLdTavbvu4f-cTeb5bpXW5Iz27l7z8opWMAhQ0eUZ38/edit`
   Tabs: Config, Campaigns, ClickLog, ConversionLog, DSPPostbackLog.
-- **Deployment:** Web app, **Version 6**, Execute as me, Access = Anyone (same `/exec` URL across versions).
+- **Deployment:** Web app, **Version 7**, Execute as me, Access = Anyone (same `/exec` URL across versions).
+- **Cross-domain (v7):** the pixel reads `click_id` from the URL on any page (not just landing) and re-drops the cookie on that domain, so attribution follows the user across domains when the advertiser decorates cross-domain links with the params. Verified live: a no-cookie conversion page with `click_id` in the URL attributed correctly (`can_claim=1`, forwarded to Aarki 200). Sub-domains via `cookie_domain`.
 
 ## Endpoints (append to WEBAPP_URL)
 

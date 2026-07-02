@@ -21,7 +21,7 @@ RZR runs lead-generation and web performance campaigns but lacks a first-party w
 
 **Goals.** Provide click-based web conversion attribution with a single advertiser-side tag; support landing, registration, purchase, and arbitrary custom events; capture conversion value and order/transaction IDs for revenue and de-duplication; forward attributed postbacks to RZR's DSP endpoint; and stand all of this up with zero RZR-owned infrastructure for the pilot.
 
-**Non-goals (v1).** Cross-device or cross-domain identity resolution; app/SDK (in-app) attribution; view-through attribution from impressions; a full self-serve advertiser UI; and fraud/IVT detection. These are addressed or scoped in the roadmap.
+**Non-goals (v1).** Cross-device identity resolution and server-side (independent-domain) matching; app/SDK (in-app) attribution; view-through attribution from impressions; a full self-serve advertiser UI; and fraud/IVT detection. These are addressed or scoped in the roadmap. *(Cross-domain within an advertiser's own properties is supported via link decoration — see FR-13.)*
 
 ## 4. Users and personas
 
@@ -33,7 +33,9 @@ Attribution is **click_id based, last-click, within a configurable lookback wind
 
 The DSP appends a unique `click_id` (plus campaign/publisher/creative identifiers) to the advertiser's landing-page URL at serve time. On the landing page, the pixel reads these parameters from the URL and writes them into a first-party cookie (`_dsp_attr`) scoped to the advertiser's own domain, recording a first-touch timestamp. On any later conversion page within the same domain and within the lookback window, the pixel reads the cookie and sends the stored `click_id` (and conversion details) to RZR, which credits the conversion to that click.
 
-Because the cookie is written by JavaScript on the advertiser's domain, it is genuinely first-party and requires no RZR server on the advertiser's site — which is what makes the no-backend MVP possible. The trade-off is that attribution is scoped to a single advertiser domain (see Limitations).
+Because the cookie is written by JavaScript on the advertiser's domain, it is genuinely first-party and requires no RZR server on the advertiser's site — which is what makes the no-backend MVP possible.
+
+**Cross-domain (link decoration).** The pixel reads the `click_id` (and other tracking params) from the page URL on *any* page, not only the landing page, and re-establishes the cookie on whatever domain it runs on. So a multi-domain funnel is supported provided the advertiser carries the params on cross-domain links (e.g. `…/checkout?click_id=…&campaign_id=…&device_id=…`) — the GA cross-domain-linker pattern. Sub-domains are covered by setting `cookie_domain`. Independent domains with no shared link, and cross-device journeys, still require server-side identity matching (roadmap).
 
 ## 6. Parameter contract
 
@@ -110,6 +112,8 @@ to `1`, and `from_imp` is not sent. The full template is stored in the Config ta
 
 **FR-12 — Click URL Generator (self-serve for Sales/CS).** The same tool shall include a Click Tracking URL builder: given the advertiser's landing-page URL, it outputs the click-through URL the DSP traffics, appending `pub_id={bundle_id}&campaign_id={cid}&click_id={click_id}&device_id={advertising_id}` where `{...}` are DSP serve-time macros. These map into the pixel/cookie and ultimately the postback (`pub_id`→`app_id`, `device_id`→`advertising_id`).
 
+**FR-13 — Cross-domain attribution (link decoration).** The pixel shall capture the tracking params from the page URL on any event (not only `landing`); when a `click_id` is present it (re)writes the first-party cookie on the current domain before firing. This lets attribution follow a user across domains when the advertiser carries the params on cross-domain links, without any RZR server on the advertiser's site. Same-domain and cross-subdomain (`cookie_domain`) behavior is unchanged.
+
 ## 8. Non-functional requirements
 
 The pixel must be small, dependency-free, and asynchronous so it never blocks or visibly delays the advertiser's page, and must degrade silently on any error. Beacons must work cross-origin without CORS configuration (achieved via `navigator.sendBeacon` with an `Image` GET fallback). Conversion logging should be idempotent on `txn_id`. The parameter contract must be versioned and backward compatible. For privacy, the cookie stores only campaign/click identifiers and a timestamp — no PII — and the solution must be deployable in a way that respects consent (see roadmap).
@@ -137,7 +141,7 @@ The Google Sheet is the database, with tabs for `Config` (settings), `Campaigns`
 
 ## 10. v1 limitations
 
-Attribution is **single-domain** — landing and conversion pages must share an origin (or sub-domains via a shared cookie domain); cross-domain journeys require carrying `click_id` in URLs. **Apps Script quotas** cap throughput (notably ~20k `UrlFetchApp` calls/day and URL-fetch/execution limits), making v1 suitable for pilots and low volume, not production scale. **Browser cookie limits** (e.g. Safari ITP capping script-set cookie lifetime to ~7 days) mean the lookback window is best-effort. There is **no fraud/IVT filtering, no view-through, and no cross-device** resolution. Finally, the Apps Script HtmlService sandbox cannot itself host an interactive demo that sets cookies/beacons, and re-deploying the JS-serving endpoint can briefly 404 while it propagates — both are MVP-environment quirks, not properties of the pixel on a normal site.
+Attribution is **cookie-based per domain** — same-domain and cross-subdomain (`cookie_domain`) work out of the box, and **cross-domain works via link decoration** (the advertiser carries `click_id` on cross-domain links; FR-13). What is *not* covered without a server-side identity store: independent domains with no shared link, and cross-device journeys. **Apps Script quotas** cap throughput (notably ~20k `UrlFetchApp` calls/day and URL-fetch/execution limits), making v1 suitable for pilots and low volume, not production scale. **Browser cookie limits** (e.g. Safari ITP capping script-set cookie lifetime to ~7 days) mean the lookback window is best-effort. There is **no fraud/IVT filtering, no view-through, and no cross-device** resolution. Finally, the Apps Script HtmlService sandbox cannot itself host an interactive demo that sets cookies/beacons, and re-deploying the JS-serving endpoint can briefly 404 while it propagates — both are MVP-environment quirks, not properties of the pixel on a normal site.
 
 ## 11. Production roadmap (v2+)
 

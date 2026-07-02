@@ -22,7 +22,14 @@ Your tracking landing URL will carry several query parameters (e.g. `click_id`, 
 
 When RZR sends a visitor to your landing page, the URL carries a unique click identifier. The pixel reads it and stores it in a first-party cookie on your domain. Later, when that visitor completes an action (registers, purchases, etc.) on your site, the pixel reads the cookie and tells RZR which click led to the conversion. No personal data is stored in the cookie — only campaign and click identifiers.
 
-**Important:** the pixel must be on your **landing page** (to capture the click) and on each **conversion page** (to record the action), and these pages must be on the **same domain**.
+**Important:** the pixel must be on your **landing page** (to capture the click) and on each **conversion page** (to record the action).
+
+**If your funnel spans more than one domain or subdomain**, see "Cross-domain funnels" below — a small extra step keeps attribution working.
+
+### Cross-domain funnels
+
+- **Different subdomains** (e.g. `lp.brand.com` → `shop.brand.com`): tell your RZR contact and they'll set the cookie to cover `.brand.com` — no change on your side.
+- **Different domains** (e.g. `brand-landing.com` → `brand-shop.com`): when you link/redirect the user from one domain to the other, **carry the tracking parameters on that link** (at minimum `click_id` and `campaign_id`, ideally also `pub_id`, `device_id`). Example: link to `https://brand-shop.com/checkout?click_id=…&campaign_id=…&device_id=…`. The pixel on the second domain reads them and continues attribution. (This is the same idea as Google Analytics' cross-domain linker.) Your RZR contact can help you set up the link decoration.
 
 ## 3. Install the pixel
 
