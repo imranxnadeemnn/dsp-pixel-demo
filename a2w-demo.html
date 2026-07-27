@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RZR Store — App2Web Pixel Demo (rzr_beat.js)</title>
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:680px;margin:32px auto;padding:0 18px;color:#16161d;line-height:1.5}
+  h1{font-size:22px;margin-bottom:4px} .muted{color:#777;font-size:14px}
+  .card{border:1px solid #e4e4ef;border-radius:12px;padding:18px;margin:16px 0}
+  button{background:#3b3bff;color:#fff;border:0;border-radius:8px;padding:11px 16px;font-size:14px;cursor:pointer;margin:4px 8px 4px 0}
+  button.alt{background:#0a8f5b} button.gray{background:#555}
+  code{background:#f2f2fb;padding:2px 6px;border-radius:5px;font-size:12px}
+  #log{background:#0f1020;color:#7fffd4;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;padding:14px;border-radius:8px;min-height:96px;white-space:pre-wrap}
+</style>
+<!-- ===== RZR web pixel (engineering-provided, production) ===== -->
+<script src="https://spire.aarki.net/v1/a2w/rzr_beat.js"></script>
+</head>
+<body>
+  <h1>RZR Store — App2Web Pixel Demo</h1>
+  <p class="muted">Live test page using the production pixel <code>rzr_beat.js</code>. Open it via an RZR click URL, e.g.
+  <code>?ck_id=ABC123&rzr_debug=true</code>. Per the pixel's design, <b>nothing is sent until consent is granted</b> —
+  events fired before then are queued and flushed on grant.</p>
+
+  <div class="card">
+    <b>Step 1 — Consent</b> (required; the pixel is silent until this is set)<br>
+    <button onclick="grant(true)">Accept cookies</button>
+    <button class="gray" onclick="grant(false)">Decline</button>
+    <span id="cstate" class="muted">consent: not set</span>
+  </div>
+
+  <div class="card">
+    <b>Step 2 — Fire conversions</b> (each calls <code>rzr_beat.fire()</code>):<br>
+    <button class="alt" onclick="ev('signup')">Sign up</button>
+    <button onclick="ev('subscribe', { value: 9.99, currency: 'USD' })">Subscribe $9.99</button>
+    <button onclick="ev('purchase', { order_id: 'A' + Date.now(), value: 49.99, currency: 'USD' })">Purchase $49.99</button>
+    <button class="gray" onclick="ev('add_to_cart', { sku: 'SKU_123', value: 19.00, currency: 'USD' })">Add to cart</button>
+  </div>
+
+  <div class="card">
+    <b>Event log</b> (local view of the calls this page makes to the pixel)
+    <div id="log">(loading…)</div>
+  </div>
+
+  <script>
+    function line(m){ var l = document.getElementById("log"); l.textContent += "\n" + m; }
+    function ready(){ return window.rzr_beat && typeof window.rzr_beat.fire === "function"; }
+
+    function grant(v){
+      if(!ready()) return line("pixel NOT loaded ✗");
+      window.rzr_beat.setConsent(v);
+      document.getElementById("cstate").textContent = "consent: " + v;
+      line("setConsent(" + v + ")" + (v ? "  → queued events flush now" : ""));
+    }
+    function ev(name, data){
+      if(!ready()) return line("pixel NOT loaded ✗");
+      window.rzr_beat.fire(name, data || {});
+      line("fire(\"" + name + "\", " + JSON.stringify(data || {}) + ")");
+    }
+
+    // Step 0 — pageview on load (queues until consent is granted)
+    (function(){
+      if(ready()){
+        window.rzr_beat.fire("pageview");
+        line("pixel loaded ✓ — fire(\"pageview\") [held until consent]");
+      } else {
+        line("pixel NOT loaded ✗ (check the script URL)");
+      }
+    })();
+  </script>
+</body>
+</html>
