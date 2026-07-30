@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RZR A2W Pixel Generator (rzr_beat.js)</title>
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;color:#16161d;line-height:1.5}
+  h1{font-size:21px;margin-bottom:2px} h2{font-size:15px;margin:0 0 6px}
+  .muted{color:#777;font-size:13px}
+  .card{border:1px solid #e4e4ef;border-radius:12px;padding:16px 18px;margin:16px 0}
+  label{display:block;margin:10px 0 4px;font-weight:600;font-size:13px}
+  input,select{width:100%;padding:9px 11px;font-size:14px;border:1px solid #cfcfe0;border-radius:8px;box-sizing:border-box}
+  .row{display:flex;gap:12px} .row>div{flex:1}
+  button.copy{background:#3b3bff;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;margin-top:10px}
+  textarea{width:100%;box-sizing:border-box;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;border:1px solid #cfcfe0;border-radius:8px;padding:12px;background:#0f1020;color:#9effd6;margin-top:8px}
+  code{background:#f2f2fb;padding:1px 5px;border-radius:4px;font-size:12px}
+  .ok{color:#0a8f5b;font-size:12px}
+</style>
+</head>
+<body>
+  <h1>🧩 RZR App2Web Pixel Generator</h1>
+  <p class="muted">For Sales / Customer Success. Builds the advertiser's <b>landing URL</b> and the copy-paste
+  snippets for the production pixel <code>rzr_beat.js</code>. Fill the fields — snippets update live.</p>
+
+  <!-- 1. Landing URL -->
+  <div class="card">
+    <h2>1) Landing page URL (put this in the campaign)</h2>
+    <p class="muted">RZR appends the click id at serve time. The pixel reads <code>ck_id</code> from the URL and attaches it to every event.</p>
+    <label>Advertiser landing page URL</label>
+    <input id="lp" value="https://advertiser.com/subscribe" oninput="build()">
+    <div class="row">
+      <div><label>utm_campaign (optional)</label><input id="camp" placeholder="spring_signups" oninput="build()"></div>
+      <div><label>utm_medium</label><input id="medium" value="paid" oninput="build()"></div>
+    </div>
+    <textarea id="outLp" readonly rows="3"></textarea>
+    <button class="copy" onclick="copy('outLp',this)">Copy landing URL</button>
+    <p class="muted"><code>{CLICK_ID}</code> is RZR's serve-time click macro (Encore substitutes it). <code>utm_source=aarki</code> is always added.</p>
+  </div>
+
+  <!-- 2. Base pixel -->
+  <div class="card">
+    <h2>2) Base pixel — paste in the site <code>&lt;head&gt;</code> (all pages)</h2>
+    <textarea id="outBase" readonly rows="3"></textarea>
+    <button class="copy" onclick="copy('outBase',this)">Copy base pixel</button>
+    <p class="muted">Loads the pixel and fires <code>pageview</code>. In SPAs, also call <code>rzr_beat.fire("pageview")</code> on each route change.</p>
+  </div>
+
+  <!-- 3. Consent -->
+  <div class="card">
+    <h2>3) Consent — wire to the cookie banner (required)</h2>
+    <textarea id="outConsent" readonly rows="2"></textarea>
+    <button class="copy" onclick="copy('outConsent',this)">Copy consent calls</button>
+    <p class="muted">The pixel stays silent until consent is granted; events fired earlier are queued and flushed on grant.</p>
+  </div>
+
+  <!-- 4. Conversion event tag -->
+  <div class="card">
+    <h2>4) Conversion event tag — paste on the conversion page/action</h2>
+    <label>Event name</label>
+    <select id="evt" onchange="onEvt();build()">
+      <option>signup</option><option>lead</option><option selected>subscribe</option>
+      <option>purchase</option><option>add_to_cart</option><option value="__custom">custom…</option>
+    </select>
+    <input id="evtCustom" placeholder="custom event name (e.g. begin_checkout)" style="display:none;margin-top:8px" oninput="build()">
+    <div class="row">
+      <div><label>value (optional)</label><input id="val" placeholder="49.99" oninput="build()"></div>
+      <div><label>currency</label><input id="cur" value="USD" oninput="build()"></div>
+    </div>
+    <div class="row">
+      <div><label>order_id (optional)</label><input id="oid" placeholder="A1001" oninput="build()"></div>
+      <div><label>sku (optional)</label><input id="sku" placeholder="SKU_123" oninput="build()"></div>
+    </div>
+    <textarea id="outEvt" readonly rows="3"></textarea>
+    <button class="copy" onclick="copy('outEvt',this)">Copy event tag</button>
+    <p class="muted">Leave a field blank to omit it. For runtime values (cart total, order id), replace the literal with your dataLayer variable.</p>
+  </div>
+
+  <script>
+    var PIXEL = "https://spire.aarki.net/v1/a2w/rzr_beat.js";
+
+    function onEvt(){
+      document.getElementById("evtCustom").style.display =
+        document.getElementById("evt").value === "__custom" ? "block" : "none";
+    }
+
+    function build(){
+      // 1) Landing URL
+      var lp = document.getElementById("lp").value.trim();
+      var camp = document.getElementById("camp").value.trim();
+      var medium = document.getElementById("medium").value.trim();
+      var params = ["utm_source=aarki"];
+      if (medium) params.push("utm_medium=" + encodeURIComponent(medium));
+      if (camp)   params.push("utm_campaign=" + encodeURIComponent(camp));
+      params.push("ck_id={CLICK_ID}");
+      var sep = lp.indexOf("?") === -1 ? "?" : "&";
+      document.getElementById("outLp").value = lp ? (lp + sep + params.join("&")) : "";
+
+      // 2) Base pixel
+      document.getElementById("outBase").value =
+        '<script src="' + PIXEL + '"><\/script>\n<script>window.rzr_beat.fire("pageview");<\/script>';
+
+      // 3) Consent
+      document.getElementById("outConsent").value =
+        '<script>window.rzr_beat.setConsent(true);<\/script>   <!-- on accept -->\n' +
+        '<script>window.rzr_beat.setConsent(false);<\/script>  <!-- on decline -->';
+
+      // 4) Event tag
+      var evt = document.getElementById("evt").value;
+      if (evt === "__custom") evt = (document.getElementById("evtCustom").value.trim() || "custom");
+      var data = {};
+      var v = document.getElementById("val").value.trim();
+      var c = document.getElementById("cur").value.trim();
+      var o = document.getElementById("oid").value.trim();
+      var s = document.getElementById("sku").value.trim();
+      if (o) data.order_id = o;
+      if (s) data.sku = s;
+      if (v) data.value = isNaN(Number(v)) ? v : Number(v);
+      if (v && c) data.currency = c;
+      var call = Object.keys(data).length
+        ? 'window.rzr_beat.fire("' + evt + '", ' + JSON.stringify(data) + ');'
+        : 'window.rzr_beat.fire("' + evt + '");';
+      document.getElementById("outEvt").value = "<script>" + call + "<\/script>";
+    }
+
+    function copy(id, btn){
+      var t = document.getElementById(id); t.focus(); t.select();
+      try { document.execCommand("copy"); btn.textContent = "Copied!"; setTimeout(function(){ btn.textContent = btn.textContent.replace("Copied!","Copy"); }, 1500); }
+      catch(e){ /* user can select manually */ }
+    }
+
+    onEvt(); build();
+  </script>
+</body>
+</html>
